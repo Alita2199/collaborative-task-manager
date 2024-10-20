@@ -1,0 +1,28 @@
+body {
+    background-image: url('https://images.unsplash.com/photo-1521747116042-5a810fda9664?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=MnwxMTc3Mzl8MHwxfGFsbHwxfHx8fHx8fHwxNjY4MzgzNjcw&ixlib=rb-1.2.1&q=80&w=1080');
+    background-size: cover;
+    background-position: center;
+}
+
+.overlay {
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+#notification-area {
+    position: fixed; /* Changed to fixed for better visibility */
+    top: 0;          /* Aligns to the top of the viewport */
+    left: 0;
+    right: 0;
+    z-index: 1000;  /* Ensures it stays above other elements */
+    padding: 10px;  /* Adds some padding */
+    background-color: rgba(0, 0, 0, 0.7); /* Semi-transparent background */
+    color: white;   /* Text color */
+}
+
+.notification {
+    background-color: #a8b9c9; /* Notification background */
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 10px; /* Spacing between notifications */
+    transition: opacity 0.5s; /* Fade-out effect */
+}

@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Collaborative Task Manager</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="/socket.io/socket.io.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body class="bg-gray-900 text-white">
+    <div id="notification-area" class="absolute top-0 left-0 right-0 p-4 z-50"></div>
+    <!-- Navigation Bar -->
+    <nav class="bg-gray-800 p-4">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-xl font-bold">Task Manager</h1>
+            <div>
+                <a href="#about" class="text-gray-300 hover:text-blue-400 mx-2">About</a>
+                <a href="#features" class="text-gray-300 hover:text-blue-400 mx-2">Features</a>
+                <a href="#contact" class="text-gray-300 hover:text-blue-400 mx-2">Contact</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Username Input -->
+    <div id="username-container" class="flex flex-col items-center justify-center min-h-screen">
+        <div class="overlay p-6 w-full max-w-md rounded-lg">
+            <h2 class="text-2xl font-bold mb-4 text-center">Enter Your Username</h2>
+            <input type="text" id="username" placeholder="Username" required
+                class="w-full p-2 mb-4 rounded border border-gray-600 focus:outline-none focus:ring focus:ring-blue-500 bg-gray-700 placeholder-gray-400">
+            <button id="set-username"
+                class="w-full bg-blue-600 p-2 rounded hover:bg-blue-500 transition duration-200">Set Username</button>
+            <div id="username-message" class="mt-4 text-green-400"></div> <!-- Success message area -->
+        </div>
+    </div>
+
+    <!-- Task Manager Content -->
+    <div id="task-manager" class="hidden flex flex-col items-center justify-center min-h-screen">
+        <div class="overlay p-6 mt-6 w-full max-w-md rounded-lg">
+            <h2 class="text-2xl font-bold mb-4 text-center">Add a New Task</h2>
+            <form id="task-form" class="space-y-4">
+                <input type="text" id="task-title" placeholder="Task Title" required
+                    class="w-full p-2 mb-4 rounded border border-gray-600 focus:outline-none focus:ring focus:ring-blue-500 bg-gray-700 placeholder-gray-400">
+                <input type="text" id="task-description" placeholder="Task Description" required
+                    class="w-full p-2 mb-4 rounded border border-gray-600 focus:outline-none focus:ring focus:ring-blue-500 bg-gray-700 placeholder-gray-400">
+                <input type="text" id="assigned-to" placeholder="Assigned To"
+                    class="w-full p-2 mb-4 rounded border border-gray-600 focus:outline-none focus:ring focus:ring-blue-500 bg-gray-700 placeholder-gray-400">
+                <button type="submit"
+                    class="w-full bg-blue-600 p-2 rounded hover:bg-blue-500 transition duration-200">Add Task</button>
+            </form>
+            <div id="message" class="mt-4 text-green-400"></div> <!-- Success message area -->
+        </div>
+
+        <ul id="task-list" class="mt-6 w-full max-w-md overlay p-4 rounded-lg"></ul>
+    </div>
+
+    <!-- Informational Sections -->
+    <section id="about" class="overlay p-6 mt-10 rounded-lg container mx-auto">
+        <h2 class="text-2xl font-bold mb-4">About This Tool</h2>
+        <p>This Collaborative Task Manager allows teams to manage tasks efficiently and collaboratively. Add tasks, assign them to team members, and keep track of progress.</p>
+    </section>
+
+    <section id="features" class="overlay p-6 mt-10 rounded-lg container mx-auto">
+        <h2 class="text-2xl font-bold mb-4">Features</h2>
+        <ul class="list-disc pl-5">
+            <li>Real-time task updates</li>
+            <li>Easy task assignment</li>
+            <li>Intuitive interface</li>
+            <li>Seamless collaboration with team members</li>
+        </ul>
+    </section>
+
+    <section id="contact" class="overlay p-6 mt-10 rounded-lg container mx-auto">
+        <h2 class="text-2xl font-bold mb-4">Contact Us</h2>
+        <p>If you have any questions or feedback, feel free to reach out to us!</p>
+        <p>Email: <a href="mailto:info@taskmanager.com" class="text-blue-400">info@taskmanager.com</a></p>
+    </section>
+
+    <script>
+        const socket = io();
+        const taskForm = document.getElementById('task-form');
+        const taskList = document.getElementById('task-list');
+        const messageDiv = document.getElementById('message');
+        const usernameInput = document.getElementById('username');
+        const setUsernameButton = document.getElementById('set-username');
+        const usernameContainer = document.getElementById('username-container');
+        const taskManager = document.getElementById('task-manager');
+        const usernameMessage = document.getElementById('username-message');
+
+        // Handle username setting
+        setUsernameButton.addEventListener('click', () => {
+            const username = usernameInput.value.trim();
+            if (username) {
+                socket.emit('setUsername', username); // Emit username to server
+                usernameMessage.textContent = `Welcome, ${username}!`; // Show welcome message
+                usernameContainer.classList.add('hidden'); // Hide username input
+                taskManager.classList.remove('hidden'); // Show task manager
+            } else {
+                usernameMessage.textContent = 'Please enter a valid username.';
+            }
+        });
+
+        taskForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const title = document.getElementById('task-title').value;
+            const description = document.getElementById('task-description').value;
+            const assignedTo = document.getElementById('assigned-to').value;
+
+            const response = await fetch('/api/tasks', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title, description, assignedTo }),
+            });
+
+            if (response.ok) {
+                const task = await response.json();
+                const li = document.createElement('li');
+                li.textContent = `${task.title} - ${task.description} (Assigned to: ${task.assignedTo})`;
+                li.classList.add('text-gray-300', 'border-b', 'border-gray-600', 'py-2', 'text-lg');
+                taskList.appendChild(li);
+                taskForm.reset();
+                messageDiv.textContent = 'Task added successfully!'; // Show success message
+
+                // Emit task added event to notify others
+                socket.emit('taskAdded', { title, description, assignedTo });
+            } else {
+                messageDiv.textContent = 'Failed to add task. Please try again.'; // Show error message
+            }
+        });
+
+        // Fetch tasks when the page loads
+        async function fetchTasks() {
+            const response = await fetch('/api/tasks');
+            const tasks = await response.json();
+            tasks.forEach(task => {
+                const li = document.createElement('li');
+                li.textContent = `${task.title} - ${task.description} (Assigned to: ${task.assignedTo})`;
+                li.classList.add('text-gray-300', 'border-b', 'border-gray-600', 'py-2', 'text-lg');
+                taskList.appendChild(li);
+            });
+        }
+
+        fetchTasks();
+        const notificationArea = document.getElementById('notification-area');
+        /// Listen for new task notifications
+socket.on('taskNotification', (message) => {
+    const notification = document.createElement('div');
+    notification.textContent = message;
+    notification.classList.add('notification'); // Add your custom notification class
+
+    notificationArea.prepend(notification); // Add the notification to the top
+
+    // Remove the notification after 5 seconds
+    setTimeout(() => {
+        notification.style.opacity = 0; // Start fade out
+        setTimeout(() => {
+            notificationArea.removeChild(notification); // Remove after fade
+        }, 500); // Match this timeout with your CSS transition duration
+    }, 5000);
+});
+
+    </script>
+</body>
+
+</html>
